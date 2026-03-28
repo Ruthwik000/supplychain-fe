@@ -801,7 +801,6 @@ function Step2({
   previewError,
   onGeneratePreview,
 }) {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const estimated = estimateShipmentMetrics(formData)
   const algorithmResults = packingPreview?.algorithm_results || []
   const selectedResult =
@@ -819,9 +818,8 @@ function Step2({
 
   return (
     <div className="step-content-fullscreen">
-      <div className={`canvas-main-area ${isSidebarOpen ? 'secondary-open' : ''}`}>
+      <div className="canvas-main-area">
         <div className="canvas-header">
-          <h2>3D Bin Packing Visualization</h2>
           <div className="canvas-header-actions">
             <div className="vehicle-tabs-compact">
               {VEHICLE_CATEGORIES.map(category => (
@@ -923,125 +921,6 @@ function Step2({
           </div>
         </div>
       </div>
-
-      <div className={`secondary-sidebar ${isSidebarOpen ? 'open' : ''}`}>
-        {previewError ? (
-          <div
-            style={{
-              padding: '10px 12px',
-              borderRadius: '8px',
-              border: '1px solid rgba(239,68,68,0.35)',
-              background: 'rgba(239,68,68,0.1)',
-              color: 'var(--error)',
-              fontSize: '0.75rem',
-            }}
-          >
-            {previewError}
-          </div>
-        ) : null}
-
-        <div className="card">
-          <h3 style={{ fontSize: '0.9rem', marginBottom: 'var(--space-3)' }}>Algorithm Selection</h3>
-          {algorithmResults.length ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {algorithmResults.map((result) => (
-                <button
-                  key={result.strategy}
-                  className={`btn ${selectedStrategy === result.strategy ? 'btn-primary' : 'btn-secondary'}`}
-                  style={{ fontSize: '0.75rem', padding: '8px 12px', width: '100%' }}
-                  onClick={() => onChange('selectedAlgorithm', result.strategy)}
-                >
-                  {ALGORITHM_LABELS[result.strategy] || result.strategy}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
-              Run Analyze to see options
-            </p>
-          )}
-        </div>
-
-        <div className="card">
-          <h3 style={{ fontSize: '0.9rem', marginBottom: 'var(--space-3)' }}>Performance</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-            <div style={{ padding: 'var(--space-2)', background: 'var(--surface)', borderRadius: 'var(--radius-md)' }}>
-              <div className="label" style={{ fontSize: '0.7rem' }}>Efficiency</div>
-              <div style={{ fontSize: '1.1rem', fontWeight: '700' }}>{spaceUtil.toFixed(1)}%</div>
-            </div>
-            <div style={{ padding: 'var(--space-2)', background: 'var(--surface)', borderRadius: 'var(--radius-md)' }}>
-              <div className="label" style={{ fontSize: '0.7rem' }}>Packed</div>
-              <div style={{ fontSize: '1.1rem', fontWeight: '700' }}>{packedCount}</div>
-            </div>
-            <div style={{ padding: 'var(--space-2)', background: 'var(--surface)', borderRadius: 'var(--radius-md)' }}>
-              <div className="label" style={{ fontSize: '0.7rem' }}>Unpacked</div>
-              <div style={{ fontSize: '1.1rem', fontWeight: '700' }}>{unpackedCount}</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <h3 style={{ fontSize: '0.9rem', marginBottom: 'var(--space-3)' }}>Manifest Summary</h3>
-          <div className="manifest-item">
-            <span className="label">Cargo</span>
-            <span>{formData.cargoType || 'Not specified'}</span>
-          </div>
-          <div className="manifest-item">
-            <span className="label">Weight</span>
-            <span>{formData.weight ? `${formData.weight} kg` : 'Not specified'}</span>
-          </div>
-          <div className="manifest-item">
-            <span className="label">Estimated Volume</span>
-            <span>{estimated.totalVolumeM3.toFixed(3)} m³</span>
-          </div>
-          <div className="manifest-item">
-            <span className="label">Value</span>
-            <span>{formData.value ? `$${formData.value}` : 'Not specified'}</span>
-          </div>
-          <div className="manifest-item">
-            <span className="label">Hazardous</span>
-            <span className={`badge ${formData.hazardous ? 'badge-warning' : 'badge-success'}`}>
-              {formData.hazardous ? 'Yes' : 'No'}
-            </span>
-          </div>
-          <div className="manifest-item">
-            <span className="label">Estimated Impact</span>
-            <span className={`badge ${unpackedCount ? 'badge-warning' : 'badge-success'}`}>
-              {unpackedCount ? 'Medium' : 'Low'}
-            </span>
-          </div>
-          <div className="manifest-item">
-            <span className="label">Algorithm Winner</span>
-            <span>{selectedStrategy ? ALGORITHM_LABELS[selectedStrategy] : 'Pending'}</span>
-          </div>
-        </div>
-
-        <div className="card">
-          <h3 style={{ fontSize: '0.9rem', marginBottom: 'var(--space-3)' }}>Technical Telemetry</h3>
-          <div className="telemetry-grid">
-            <div className="telemetry-item">
-              <div className="label">Load Distribution</div>
-              <div className="telemetry-value">{unpackedCount ? 'Constrained' : 'Balanced'}</div>
-            </div>
-            <div className="telemetry-item">
-              <div className="label">Weight Fill</div>
-              <div className="telemetry-value">{weightUtil.toFixed(1)}%</div>
-            </div>
-            <div className="telemetry-item">
-              <div className="label">Axle Load</div>
-              <div className="telemetry-value">{unpackedCount ? 'Review Needed' : 'Within Limits'}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <button 
-        className="secondary-sidebar-toggle"
-        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        aria-label={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
-      >
-        {isSidebarOpen ? <PanelRightClose size={18} /> : <PanelRightOpen size={18} />}
-      </button>
     </div>
   )
 }

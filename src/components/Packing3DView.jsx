@@ -55,14 +55,14 @@ export default function Packing3DView({ truckDimensions, positions, height = 340
     const truckWidth = Math.max(1, Number(truckDimensions?.w || 0)) * scale
     const truckHeight = Math.max(1, Number(truckDimensions?.h || 0)) * scale
 
-    camera.position.set(truckLength * 1.6, truckWidth * 1.6, truckHeight * 1.3)
+    camera.position.set(truckLength * 1.6, truckHeight * 1.3, truckWidth * 1.6)
 
     const controls = new OrbitControls(camera, renderer.domElement)
     controls.enableDamping = true
     controls.dampingFactor = 0.08
     controls.maxDistance = Math.max(truckLength, truckWidth, truckHeight) * 4
     controls.minDistance = 4
-    controls.target.set(truckLength / 2, truckWidth / 2, truckHeight / 2)
+    controls.target.set(truckLength / 2, truckHeight / 2, truckWidth / 2)
     controls.enablePan = true
     controls.enableZoom = true
     controls.enableRotate = true
@@ -84,20 +84,19 @@ export default function Packing3DView({ truckDimensions, positions, height = 340
     scene.add(fillLight)
 
     const floor = new THREE.Mesh(
-      new THREE.PlaneGeometry(truckLength * 2.5, truckLength * 2.5),
+      new THREE.PlaneGeometry(truckLength * 2.5, truckWidth * 2.5),
       new THREE.MeshStandardMaterial({ color: 0x0d1728, roughness: 1 }),
     )
     floor.rotation.x = -Math.PI / 2
-    floor.position.set(truckLength / 2, truckWidth / 2, -0.03)
+    floor.position.set(truckLength / 2, -0.03, truckWidth / 2)
     floor.receiveShadow = true
     scene.add(floor)
 
     const grid = new THREE.GridHelper(truckLength * 2.2, 24, 0x284364, 0x1c2f47)
-    grid.position.set(truckLength / 2, truckWidth / 2, 0)
-    grid.rotation.x = Math.PI / 2
+    grid.position.set(truckLength / 2, 0, truckWidth / 2)
     scene.add(grid)
 
-    const containerGeometry = new THREE.BoxGeometry(truckLength, truckWidth, truckHeight)
+    const containerGeometry = new THREE.BoxGeometry(truckLength, truckHeight, truckWidth)
     const containerMaterial = new THREE.MeshPhysicalMaterial({
       color: 0x88aaff,
       transparent: true,
@@ -107,7 +106,7 @@ export default function Packing3DView({ truckDimensions, positions, height = 340
       transmission: 0.2,
     })
     const containerMesh = new THREE.Mesh(containerGeometry, containerMaterial)
-    containerMesh.position.set(truckLength / 2, truckWidth / 2, truckHeight / 2)
+    containerMesh.position.set(truckLength / 2, truckHeight / 2, truckWidth / 2)
     scene.add(containerMesh)
 
     const edges = new THREE.EdgesGeometry(containerGeometry)
@@ -124,7 +123,7 @@ export default function Packing3DView({ truckDimensions, positions, height = 340
       const itemWidth = Math.max(1, Number(item.width || 0)) * scale
       const itemHeight = Math.max(1, Number(item.height || 0)) * scale
 
-      const geometry = new THREE.BoxGeometry(itemLength, itemWidth, itemHeight)
+      const geometry = new THREE.BoxGeometry(itemLength, itemHeight, itemWidth)
       const material = new THREE.MeshStandardMaterial({
         color: colorForItem(item.item_id),
         roughness: 0.38,
@@ -135,8 +134,8 @@ export default function Packing3DView({ truckDimensions, positions, height = 340
       mesh.receiveShadow = true
       mesh.position.set(
         (Number(item.x || 0) + Number(item.length || 0) / 2) * scale,
-        (Number(item.y || 0) + Number(item.width || 0) / 2) * scale,
         (Number(item.z || 0) + Number(item.height || 0) / 2) * scale,
+        (Number(item.y || 0) + Number(item.width || 0) / 2) * scale,
       )
       scene.add(mesh)
 
@@ -147,6 +146,11 @@ export default function Packing3DView({ truckDimensions, positions, height = 340
       outline.position.copy(mesh.position)
       scene.add(outline)
     })
+
+    // Add XYZ axis helper for rotation control
+    const axesHelper = new THREE.AxesHelper(Math.max(truckLength, truckWidth, truckHeight) * 0.8)
+    axesHelper.position.set(0, 0, 0)
+    scene.add(axesHelper)
 
     let frameId = 0
     const animate = () => {

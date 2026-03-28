@@ -781,20 +781,19 @@
 
 /* Adjust canvas when secondary sidebar is open */
 .canvas-main-area.secondary-open {
-  margin-right: 360px;
+  margin-right: 0;
 }
 
 .canvas-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   padding-bottom: var(--space-4);
   margin-bottom: var(--space-4);
 }
 
 .canvas-header h2 {
-  font-size: 1.25rem;
-  color: var(--text-primary);
+  display: none;
 }
 
 .canvas-header-actions {
@@ -827,25 +826,11 @@
 }
 
 .secondary-sidebar {
-  position: fixed;
-  top: calc(var(--topbar-height) + 140px);
-  right: -360px;
-  width: 360px;
-  height: calc(100vh - var(--topbar-height) - 140px);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  overflow-y: auto;
-  padding: var(--space-6);
-  background: var(--surface);
-  border-left: 1px solid var(--border);
-  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.1);
-  z-index: 100;
-  transition: right var(--transition-normal);
+  display: none;
 }
 
 .secondary-sidebar.open {
-  right: 0;
+  display: none;
 }
 
 .secondary-sidebar .card {
@@ -856,32 +841,7 @@
 }
 
 .secondary-sidebar-toggle {
-  position: fixed;
-  top: calc(var(--topbar-height) + 160px);
-  right: 0;
-  width: 40px;
-  height: 40px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-right: none;
-  border-radius: var(--radius-md) 0 0 var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: var(--text-secondary);
-  transition: all var(--transition-fast);
-  z-index: 101;
-}
-
-.secondary-sidebar-toggle:hover {
-  background: var(--surface-hover);
-  color: var(--text-primary);
-  width: 44px;
-}
-
-.secondary-sidebar.open ~ .secondary-sidebar-toggle {
-  right: 360px;
+  display: none;
 }
 
 @media (max-width: 1400px) {
