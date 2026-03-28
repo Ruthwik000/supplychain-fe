@@ -1,0 +1,249 @@
+.live-ops-page {
+  animation: fadeIn 0.4s ease-out;
+}
+
+.page-header-actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.live-ops-layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: var(--space-6);
+}
+
+.live-ops-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.map-marker {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  box-shadow: 0 0 16px rgba(59, 130, 246, 0.6);
+  cursor: pointer;
+  z-index: 10;
+  transform: translate(-50%, -50%);
+  transition: all var(--transition-fast);
+}
+
+.map-marker:hover {
+  transform: translate(-50%, -50%) scale(1.3);
+}
+
+.map-marker.active {
+  background: var(--success);
+  box-shadow: 0 0 20px rgba(34, 197, 94, 0.8);
+  z-index: 11;
+}
+
+.map-marker-pulse {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  animation: pulse 2s infinite;
+}
+
+.map-route-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.route-fade-out {
+  animation: fadeOut 1s ease-out forwards;
+}
+
+.route-animate-in {
+  animation: routeDraw 2s ease-out forwards;
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes routeDraw {
+  from {
+    stroke-dashoffset: 1000;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.map-shipment-detail {
+  position: absolute;
+  background: rgba(17, 24, 39, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  min-width: 240px;
+  z-index: 20;
+  animation: fadeIn 0.3s ease-out;
+  box-shadow: var(--shadow-lg);
+}
+
+.shipment-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-3);
+}
+
+.shipment-detail-id {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.shipment-detail-route {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.shipment-detail-progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.progress-value {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: right;
+}
+
+.agent-status-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+
+.agent-status-panel h3 {
+  font-size: 1rem;
+  margin-bottom: var(--space-5);
+}
+
+.agent-status-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  transition: all var(--transition-normal);
+}
+
+.agent-status-card:hover {
+  border-color: var(--border-light);
+  transform: translateY(-2px);
+}
+
+.agent-status-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-3);
+}
+
+.agent-status-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.agent-status-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--success);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+.agent-status-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: var(--space-3);
+}
+
+.agent-status-metrics {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.agent-status-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.metric-value {
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.live-ops-sidebar {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: var(--space-5);
+}
+
+.reroute-notification {
+  position: fixed;
+  bottom: var(--space-6);
+  right: var(--space-6);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: var(--surface);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  animation: slideUp 0.4s ease-out;
+  z-index: 100;
+  color: var(--success);
+}
+
+.notification-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.notification-text {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 1024px) {
+  .live-ops-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .map-container {
+    height: 400px;
+  }
+}
