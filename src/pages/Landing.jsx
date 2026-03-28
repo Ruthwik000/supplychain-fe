@@ -57,18 +57,6 @@ export default function Landing() {
 
   return (
     <div className="landing-page">
-      <nav className="landing-nav">
-        <div className="landing-nav-logo">
-          <div className="sidebar-logo-icon">
-            <Shield size={18} color="white" />
-          </div>
-          <h1>AegisChain</h1>
-        </div>
-        <button className="btn btn-primary" onClick={() => navigate('/dashboard')}>
-          Launch System <ArrowRight size={16} />
-        </button>
-      </nav>
-
       <section className="landing-hero">
         <div className="landing-hero-grid" />
         <div className="landing-hero-glow" />
