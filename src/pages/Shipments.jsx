@@ -1,19 +1,82 @@
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Plus, Filter, Download, Search, ArrowUpRight } from 'lucide-react'
+import { listShipmentRuns } from '../lib/shipmentStore'
 
-const shipmentData = [
-  { id: 'SHP-7291', origin: 'Hamburg, DE', destination: 'Frankfurt, DE', status: 'In Transit', risk: 'Low', eta: '2h 14m', agent: 'Route Engine', type: 'success', value: '$12,400' },
-  { id: 'SHP-7292', origin: 'Amsterdam, NL', destination: 'Rotterdam, NL', status: 'Processing', risk: 'Medium', eta: '5h 30m', agent: 'Logistics AI', type: 'warning', value: '$8,200' },
-  { id: 'SHP-7293', origin: 'Shanghai, CN', destination: 'Singapore, SG', status: 'In Transit', risk: 'Low', eta: '18h 45m', agent: 'Compliance AI', type: 'success', value: '$45,800' },
-  { id: 'SHP-7294', origin: 'New York, US', destination: 'Los Angeles, US', status: 'Delayed', risk: 'High', eta: '24h 10m', agent: 'Route Engine', type: 'error', value: '$22,100' },
-  { id: 'SHP-7295', origin: 'Mumbai, IN', destination: 'Dubai, AE', status: 'In Transit', risk: 'Low', eta: '8h 22m', agent: 'Packaging AI', type: 'success', value: '$18,600' },
-  { id: 'SHP-7296', origin: 'Tokyo, JP', destination: 'Seoul, KR', status: 'Completed', risk: 'Low', eta: 'Delivered', agent: 'All Agents', type: 'success', value: '$31,200' },
-  { id: 'SHP-7297', origin: 'London, UK', destination: 'Paris, FR', status: 'In Transit', risk: 'Medium', eta: '3h 15m', agent: 'Route Engine', type: 'warning', value: '$9,800' },
-  { id: 'SHP-7298', origin: 'Sydney, AU', destination: 'Melbourne, AU', status: 'Processing', risk: 'Low', eta: '6h 45m', agent: 'Packaging AI', type: 'success', value: '$14,500' },
-]
+function statusToType(status) {
+  if (status === 'FAILED') return 'error'
+  if (status === 'PARTIAL') return 'warning'
+  return 'success'
+}
+
+function statusToLabel(status) {
+  if (status === 'FAILED') return 'Blocked'
+  if (status === 'PARTIAL') return 'Processing'
+  if (status === 'SUCCESS') return 'In Transit'
+  return 'Processing'
+}
+
+function statusToRisk(status) {
+  if (status === 'FAILED') return 'High'
+  if (status === 'PARTIAL') return 'Medium'
+  return 'Low'
+}
+
+function formatCurrency(value) {
+  return `$${Math.round(Number(value) || 0).toLocaleString()}`
+}
 
 export default function Shipments() {
   const navigate = useNavigate()
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [riskFilter, setRiskFilter] = useState('all')
+
+  const runs = listShipmentRuns()
+  const shipments = runs.map((record) => {
+    const pipelineStatus = record.pipelineStatus || record.pipelineResult?.pipeline_status || 'PARTIAL'
+    const status = statusToLabel(pipelineStatus)
+    const risk = statusToRisk(pipelineStatus)
+
+    return {
+      id: `RUN-${String(record.runId || '').slice(0, 8).toUpperCase()}`,
+      origin: record.origin || record.requestPayload?.route?.origin || 'Unknown Origin',
+      destination: record.destination || record.requestPayload?.route?.destination || 'Unknown Destination',
+      status,
+      risk,
+      eta: pipelineStatus === 'FAILED' ? 'On Hold' : 'Live',
+      agent: pipelineStatus === 'FAILED' ? 'Compliance AI' : 'Logistics AI',
+      type: statusToType(pipelineStatus),
+      value: formatCurrency(record.declaredValueUsd),
+    }
+  })
+
+  const filteredShipments = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase()
+
+    return shipments.filter((shipment) => {
+      const matchesQuery =
+        query.length === 0 ||
+        shipment.id.toLowerCase().includes(query) ||
+        shipment.origin.toLowerCase().includes(query) ||
+        shipment.destination.toLowerCase().includes(query)
+
+      const matchesStatus = statusFilter === 'all' || shipment.status === statusFilter
+      const matchesRisk = riskFilter === 'all' || shipment.risk === riskFilter
+      return matchesQuery && matchesStatus && matchesRisk
+    })
+  }, [shipments, searchQuery, statusFilter, riskFilter])
+
+  const handleExport = () => {
+    const content = JSON.stringify(filteredShipments, null, 2)
+    const blob = new Blob([content], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = 'shipments-export.json'
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <div className="animate-fade-in">
@@ -27,7 +90,6 @@ export default function Shipments() {
         </button>
       </div>
 
-      {/* Filters */}
       <div className="card" style={{ marginBottom: 'var(--space-6)', padding: 'var(--space-4) var(--space-6)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
           <div style={{ position: 'relative', flex: '1', minWidth: '200px' }}>
@@ -36,31 +98,32 @@ export default function Shipments() {
               className="form-input"
               placeholder="Search by ID, origin, destination..."
               style={{ paddingLeft: '36px', width: '100%' }}
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
             />
           </div>
-          <select className="form-select" style={{ minWidth: '140px' }}>
-            <option>All Statuses</option>
-            <option>In Transit</option>
-            <option>Processing</option>
-            <option>Delayed</option>
-            <option>Completed</option>
+          <select className="form-select" style={{ minWidth: '140px' }} value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+            <option value="all">All Statuses</option>
+            <option value="In Transit">In Transit</option>
+            <option value="Processing">Processing</option>
+            <option value="Blocked">Blocked</option>
+            <option value="Completed">Completed</option>
           </select>
-          <select className="form-select" style={{ minWidth: '120px' }}>
-            <option>All Risks</option>
-            <option>Low</option>
-            <option>Medium</option>
-            <option>High</option>
+          <select className="form-select" style={{ minWidth: '120px' }} value={riskFilter} onChange={(event) => setRiskFilter(event.target.value)}>
+            <option value="all">All Risks</option>
+            <option value="Low">Low</option>
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
           </select>
           <button className="btn btn-secondary">
             <Filter size={14} /> Filter
           </button>
-          <button className="btn btn-ghost">
+          <button className="btn btn-ghost" onClick={handleExport}>
             <Download size={14} /> Export
           </button>
         </div>
       </div>
 
-      {/* Table */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <div className="data-table-wrapper">
           <table className="data-table">
@@ -78,49 +141,49 @@ export default function Shipments() {
               </tr>
             </thead>
             <tbody>
-              {shipmentData.map((s, i) => (
-                <tr key={i}>
-                  <td style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, color: 'var(--primary-light)' }}>
-                    {s.id}
-                  </td>
-                  <td>{s.origin}</td>
-                  <td>{s.destination}</td>
-                  <td><span className={`badge badge-${s.type}`}>{s.status}</span></td>
-                  <td>
-                    <span className={`badge badge-${s.risk === 'Low' ? 'success' : s.risk === 'Medium' ? 'warning' : 'error'}`}>
-                      {s.risk}
-                    </span>
-                  </td>
-                  <td style={{ color: 'var(--text-secondary)' }}>{s.eta}</td>
-                  <td style={{ fontWeight: 600 }}>{s.value}</td>
-                  <td style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{s.agent}</td>
-                  <td>
-                    <button className="btn btn-ghost" style={{ padding: '4px 8px' }}>
-                      <ArrowUpRight size={14} />
-                    </button>
+              {filteredShipments.length ? (
+                filteredShipments.map((shipment) => (
+                  <tr key={shipment.id}>
+                    <td style={{ fontFamily: 'var(--font-heading)', fontWeight: 600, color: 'var(--primary-light)' }}>
+                      {shipment.id}
+                    </td>
+                    <td>{shipment.origin}</td>
+                    <td>{shipment.destination}</td>
+                    <td><span className={`badge badge-${shipment.type}`}>{shipment.status}</span></td>
+                    <td>
+                      <span className={`badge badge-${shipment.risk === 'Low' ? 'success' : shipment.risk === 'Medium' ? 'warning' : 'error'}`}>
+                        {shipment.risk}
+                      </span>
+                    </td>
+                    <td style={{ color: 'var(--text-secondary)' }}>{shipment.eta}</td>
+                    <td style={{ fontWeight: 600 }}>{shipment.value}</td>
+                    <td style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{shipment.agent}</td>
+                    <td>
+                      <button className="btn btn-ghost" style={{ padding: '4px 8px' }} onClick={() => navigate('/live-ops')}>
+                        <ArrowUpRight size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="9" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '24px' }}>
+                    No shipments found with the selected filters.
                   </td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Pagination */}
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         marginTop: 'var(--space-5)', padding: '0 var(--space-2)'
       }}>
         <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-          Showing 1-8 of 1,247 shipments
+          Showing {filteredShipments.length} of {shipments.length} shipments
         </span>
-        <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-          <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>Previous</button>
-          <button className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>1</button>
-          <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>2</button>
-          <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>3</button>
-          <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>Next</button>
-        </div>
       </div>
     </div>
   )

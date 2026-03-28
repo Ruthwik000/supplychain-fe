@@ -1,95 +1,135 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Download, Filter, Search, Eye, CheckCircle, AlertTriangle, Info, XCircle } from 'lucide-react'
+import { getAuditLogs } from '../lib/api'
 import '../styles/Audit.css'
 
-const AUDIT_LOGS = [
-  {
-    id: 'AUD-001',
-    timestamp: '2024-03-28 14:32:15',
-    agent: 'Route',
-    action: 'Route optimization executed',
-    status: 'success',
-    details: 'Optimized route for shipment SH-2401 based on real-time traffic data and weather conditions.',
-    guardrails: ['Traffic Analysis', 'Weather Check', 'Fuel Efficiency'],
-    reason: 'Detected 15% congestion increase on primary route. Alternative route reduces ETA by 45 minutes while maintaining safety standards.'
-  },
-  {
-    id: 'AUD-002',
-    timestamp: '2024-03-28 14:28:42',
-    agent: 'Compliance',
-    action: 'Hazmat validation completed',
-    status: 'success',
-    details: 'Validated hazardous materials documentation for shipment SH-2402.',
-    guardrails: ['Document Verification', 'Regulatory Compliance', 'Insurance Check'],
-    reason: 'All required documentation present and valid. Shipment meets DOT hazmat transportation requirements.'
-  },
-  {
-    id: 'AUD-003',
-    timestamp: '2024-03-28 14:25:18',
-    agent: 'Logistics',
-    action: 'Container allocation updated',
-    status: 'info',
-    details: 'Reallocated containers to optimize space utilization.',
-    guardrails: ['Weight Distribution', 'Volume Optimization', 'Load Balance'],
-    reason: 'Improved container utilization from 78% to 92% through intelligent packing algorithm.'
-  },
-  {
-    id: 'AUD-004',
-    timestamp: '2024-03-28 14:20:05',
-    agent: 'Route',
-    action: 'Weather alert processed',
-    status: 'warning',
-    details: 'Severe weather detected on planned route.',
-    guardrails: ['Weather Monitoring', 'Safety Protocol', 'Risk Assessment'],
-    reason: 'Storm system detected. Recommended 2-hour delay or alternative route to ensure cargo safety.'
-  },
-  {
-    id: 'AUD-005',
-    timestamp: '2024-03-28 14:15:33',
-    agent: 'Packaging',
-    action: 'Load optimization complete',
-    status: 'success',
-    details: 'Optimized packaging configuration for shipment SH-2403.',
-    guardrails: ['Weight Limits', 'Fragility Check', 'Stacking Rules'],
-    reason: 'Applied ML-based packing algorithm. Reduced packaging material by 12% while maintaining protection standards.'
-  },
-  {
-    id: 'AUD-006',
-    timestamp: '2024-03-28 14:10:22',
-    agent: 'Compliance',
-    action: 'Insurance verification failed',
-    status: 'error',
-    details: 'Insurance coverage insufficient for declared cargo value.',
-    guardrails: ['Insurance Validation', 'Value Assessment', 'Risk Coverage'],
-    reason: 'Declared value $150,000 exceeds current policy limit of $100,000. Additional coverage required before dispatch.'
+function guardrailStatusToUi(status) {
+  if (status === 'FAIL') return 'error'
+  if (status === 'WARN') return 'warning'
+  if (status === 'PASS') return 'success'
+  return 'info'
+}
+
+function prettifyGuardrail(name) {
+  return String(name || '')
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (match) => match.toUpperCase())
+}
+
+function normalizeLogs(rawLogs) {
+  return rawLogs
+    .map((entry, index) => {
+      const timestamp = new Date(entry.timestamp)
+      const timestampText = Number.isNaN(timestamp.getTime())
+        ? entry.timestamp || '-'
+        : timestamp.toLocaleString()
+
+      return {
+        id: `${entry.agent_name || 'agent'}-${entry.timestamp || index}`,
+        timestamp: timestampText,
+        rawTimestamp: Number.isNaN(timestamp.getTime()) ? 0 : timestamp.getTime(),
+        agent: entry.agent_name || 'UnknownAgent',
+        action: entry.decision || 'Decision logged',
+        status: guardrailStatusToUi(entry.guardrail_status),
+        details: entry.decision || 'No details available.',
+        guardrails: Array.isArray(entry.guardrails_checked) ? entry.guardrails_checked : [],
+        reason: entry.rationale || 'No rationale available.',
+      }
+    })
+    .sort((a, b) => b.rawTimestamp - a.rawTimestamp)
+}
+
+function buildAnomalies(logs) {
+  const highCount = logs.filter((log) => log.status === 'error').length
+  const mediumCount = logs.filter((log) => log.status === 'warning').length
+  const lowCount = logs.filter((log) => log.status === 'info').length
+
+  return [
+    { type: 'Guardrail Failures', severity: 'high', count: highCount },
+    { type: 'Guardrail Warnings', severity: 'medium', count: mediumCount },
+    { type: 'Informational Events', severity: 'low', count: lowCount },
+  ]
+}
+
+function buildRecommendations(logs) {
+  const guardrailFrequency = new Map()
+  logs.forEach((log) => {
+    if (log.status === 'success') return
+    log.guardrails.forEach((guardrail) => {
+      const key = prettifyGuardrail(guardrail)
+      guardrailFrequency.set(key, (guardrailFrequency.get(key) || 0) + 1)
+    })
+  })
+
+  const ranked = [...guardrailFrequency.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([name]) => `Review ${name} guardrail thresholds and mitigation playbooks.`)
+
+  if (ranked.length) {
+    return ranked
   }
-]
 
-const ANOMALIES = [
-  { type: 'Route Deviation', severity: 'high', count: 2 },
-  { type: 'Compliance Warning', severity: 'medium', count: 5 },
-  { type: 'Performance Degradation', severity: 'low', count: 3 }
-]
-
-const RECOMMENDATIONS = [
-  'Increase insurance coverage for high-value shipments',
-  'Review route optimization parameters for weather sensitivity',
-  'Update packaging algorithms for fragile goods handling'
-]
+  return [
+    'Continue monitoring route and compliance guardrails for drift.',
+    'Schedule a weekly audit export for long-term trend analysis.',
+    'Investigate latency spikes when agent confidence drops below baseline.',
+  ]
+}
 
 export default function Audit() {
   const [selectedLog, setSelectedLog] = useState(null)
   const [filterAgent, setFilterAgent] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
+  const [auditLogs, setAuditLogs] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
 
-  const filteredLogs = AUDIT_LOGS.filter(log => {
-    const matchesAgent = filterAgent === 'all' || log.agent === filterAgent
-    const matchesStatus = filterStatus === 'all' || log.status === filterStatus
-    const matchesSearch = log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         log.details.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesAgent && matchesStatus && matchesSearch
-  })
+  useEffect(() => {
+    let canceled = false
+
+    const loadAuditLogs = async () => {
+      try {
+        setIsLoading(true)
+        const logs = await getAuditLogs()
+        if (canceled) return
+        setAuditLogs(normalizeLogs(logs))
+        setLoadError('')
+      } catch (error) {
+        if (canceled) return
+        setLoadError(error instanceof Error ? error.message : 'Unable to load audit logs.')
+      } finally {
+        if (!canceled) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    loadAuditLogs()
+
+    return () => {
+      canceled = true
+    }
+  }, [])
+
+  const filteredLogs = useMemo(() => {
+    return auditLogs.filter((log) => {
+      const matchesAgent = filterAgent === 'all' || log.agent === filterAgent
+      const matchesStatus = filterStatus === 'all' || log.status === filterStatus
+      const query = searchQuery.trim().toLowerCase()
+      const matchesSearch =
+        query.length === 0 ||
+        log.action.toLowerCase().includes(query) ||
+        log.reason.toLowerCase().includes(query)
+
+      return matchesAgent && matchesStatus && matchesSearch
+    })
+  }, [auditLogs, filterAgent, filterStatus, searchQuery])
+
+  const anomalies = useMemo(() => buildAnomalies(auditLogs), [auditLogs])
+  const recommendations = useMemo(() => buildRecommendations(auditLogs), [auditLogs])
+  const agents = useMemo(() => [...new Set(auditLogs.map((log) => log.agent))], [auditLogs])
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -100,6 +140,10 @@ export default function Audit() {
     }
   }
 
+  const handleExport = () => {
+    window.open('/api/audit/logs/export', '_blank', 'noopener,noreferrer')
+  }
+
   return (
     <div className="audit-page">
       <div className="page-header">
@@ -108,12 +152,28 @@ export default function Audit() {
           <p>Comprehensive system activity tracking and analysis</p>
         </div>
         <div className="page-header-actions">
-          <button className="btn btn-secondary">
+          <button className="btn btn-secondary" onClick={handleExport}>
             <Download size={16} />
             Export
           </button>
         </div>
       </div>
+
+      {loadError ? (
+        <div
+          style={{
+            marginBottom: '16px',
+            padding: '10px 12px',
+            borderRadius: '8px',
+            border: '1px solid rgba(239,68,68,0.35)',
+            background: 'rgba(239,68,68,0.1)',
+            color: 'var(--error)',
+            fontSize: '0.82rem',
+          }}
+        >
+          {loadError}
+        </div>
+      ) : null}
 
       <div className="audit-layout">
         <div className="audit-main">
@@ -131,19 +191,20 @@ export default function Audit() {
 
             <div className="filter-group">
               <Filter size={16} />
-              <select 
+              <select
                 className="filter-select"
                 value={filterAgent}
                 onChange={(e) => setFilterAgent(e.target.value)}
               >
                 <option value="all">All Agents</option>
-                <option value="Route">Route</option>
-                <option value="Compliance">Compliance</option>
-                <option value="Logistics">Logistics</option>
-                <option value="Packaging">Packaging</option>
+                {agents.map((agent) => (
+                  <option key={agent} value={agent}>
+                    {agent}
+                  </option>
+                ))}
               </select>
 
-              <select 
+              <select
                 className="filter-select"
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
@@ -169,30 +230,44 @@ export default function Audit() {
                 </tr>
               </thead>
               <tbody>
-                {filteredLogs.map(log => (
-                  <tr key={log.id}>
-                    <td>{log.timestamp}</td>
-                    <td>
-                      <span className="agent-badge">{log.agent}</span>
-                    </td>
-                    <td>{log.action}</td>
-                    <td>
-                      <span className={`badge badge-${log.status}`}>
-                        {getStatusIcon(log.status)}
-                        {log.status}
-                      </span>
-                    </td>
-                    <td>
-                      <button 
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => setSelectedLog(log)}
-                      >
-                        <Eye size={14} />
-                        View
-                      </button>
+                {isLoading ? (
+                  <tr>
+                    <td colSpan="5" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                      Loading audit logs...
                     </td>
                   </tr>
-                ))}
+                ) : filteredLogs.length ? (
+                  filteredLogs.map((log) => (
+                    <tr key={log.id}>
+                      <td>{log.timestamp}</td>
+                      <td>
+                        <span className="agent-badge">{log.agent}</span>
+                      </td>
+                      <td>{log.action}</td>
+                      <td>
+                        <span className={`badge badge-${log.status}`}>
+                          {getStatusIcon(log.status)}
+                          {log.status}
+                        </span>
+                      </td>
+                      <td>
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => setSelectedLog(log)}
+                        >
+                          <Eye size={14} />
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="5" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                      No logs match current filters.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -202,7 +277,7 @@ export default function Audit() {
           <div className="card">
             <h3 className="sidebar-title">Critical Anomalies</h3>
             <div className="anomalies-list">
-              {ANOMALIES.map((anomaly, index) => (
+              {anomalies.map((anomaly, index) => (
                 <div key={index} className="anomaly-item">
                   <div className="anomaly-info">
                     <div className="anomaly-type">{anomaly.type}</div>
@@ -219,7 +294,7 @@ export default function Audit() {
           <div className="card">
             <h3 className="sidebar-title">AI Recommendations</h3>
             <div className="recommendations-list">
-              {RECOMMENDATIONS.map((rec, index) => (
+              {recommendations.map((rec, index) => (
                 <div key={index} className="recommendation-item">
                   <div className="recommendation-bullet"></div>
                   <p>{rec}</p>
@@ -280,12 +355,16 @@ export default function Audit() {
               <div className="modal-section">
                 <div className="label">Guardrails Checked</div>
                 <div className="guardrails-grid">
-                  {selectedLog.guardrails.map((guardrail, index) => (
-                    <div key={index} className="guardrail-badge">
-                      <CheckCircle size={12} />
-                      {guardrail}
-                    </div>
-                  ))}
+                  {selectedLog.guardrails.length ? (
+                    selectedLog.guardrails.map((guardrail, index) => (
+                      <div key={index} className="guardrail-badge">
+                        <CheckCircle size={12} />
+                        {prettifyGuardrail(guardrail)}
+                      </div>
+                    ))
+                  ) : (
+                    <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>No guardrails recorded.</span>
+                  )}
                 </div>
               </div>
 

@@ -1,5 +1,7 @@
+import { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Shield, Package, Truck, Route, ShieldCheck, Zap, Clock, BarChart3, Target, ArrowRight } from 'lucide-react'
+import { Shield, Package, Truck, Route, ShieldCheck, Zap, ArrowRight } from 'lucide-react'
+import { listShipmentRuns } from '../lib/shipmentStore'
 
 const features = [
   {
@@ -32,15 +34,26 @@ const features = [
   },
 ]
 
-const metrics = [
-  { value: '<50ms', label: 'Agent Latency' },
-  { value: '34%', label: 'Cost Reduction' },
-  { value: '97.8%', label: 'Container Utilization' },
-  { value: '99.9%', label: 'Compliance Rate' },
-]
-
 export default function Landing() {
   const navigate = useNavigate()
+  const runs = listShipmentRuns()
+  const metrics = useMemo(() => {
+    const totalValue = runs.reduce((sum, run) => sum + Number(run.declaredValueUsd || 0), 0)
+    const successfulRuns = runs.filter((run) => (run.pipelineStatus || run.pipelineResult?.pipeline_status) === 'SUCCESS').length
+    const successRate = runs.length ? Math.round((successfulRuns / runs.length) * 100) : 0
+    const confidenceValues = runs
+      .map((run) => Number(run.pipelineResult?.packaging_result?.agent_confidence))
+      .filter((value) => Number.isFinite(value))
+    const avgConfidence = confidenceValues.length
+      ? Math.round((confidenceValues.reduce((sum, value) => sum + value, 0) / confidenceValues.length) * 100)
+      : 0
+    return [
+      { value: String(runs.length), label: 'Dispatch Runs' },
+      { value: `$${Math.round(totalValue).toLocaleString()}`, label: 'Managed Value' },
+      { value: `${avgConfidence}%`, label: 'Avg Packaging Confidence' },
+      { value: `${successRate}%`, label: 'Pipeline Success Rate' },
+    ]
+  }, [runs])
 
   return (
     <div className="landing-page">
