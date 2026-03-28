@@ -40,6 +40,7 @@ export default function Shipments() {
 
     return {
       id: `RUN-${String(record.runId || '').slice(0, 8).toUpperCase()}`,
+      runId: record.runId,
       origin: record.origin || record.requestPayload?.route?.origin || 'Unknown Origin',
       destination: record.destination || record.requestPayload?.route?.destination || 'Unknown Destination',
       status,
@@ -159,7 +160,7 @@ export default function Shipments() {
                     <td style={{ fontWeight: 600 }}>{shipment.value}</td>
                     <td style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{shipment.agent}</td>
                     <td>
-                      <button className="btn btn-ghost" style={{ padding: '4px 8px' }} onClick={() => navigate('/live-ops')}>
+                      <button className="btn btn-ghost" style={{ padding: '4px 8px' }} onClick={() => navigate('/live-ops', { state: { runId: shipment.runId } })}>
                         <ArrowUpRight size={14} />
                       </button>
                     </td>

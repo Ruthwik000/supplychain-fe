@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Package, Truck, Route, Shield, Activity, AlertCircle, CheckCircle } from 'lucide-react'
 import LiveRouteMap from '../components/LiveRouteMap'
+import WorkflowFlowchart from '../components/WorkflowFlowchart'
 import { ApiError, getAuditLogs, getPipelineStatus, runReroute } from '../lib/api'
 import {
   getLatestShipmentRun,
@@ -358,6 +359,8 @@ export default function LiveOps() {
 
   return (
     <div className="live-ops-page">
+      <WorkflowFlowchart currentStep="tracking" runId={activeRunId} />
+      
       <div className="page-header">
         <div className="page-header-left">
           <h1>Live Operations</h1>
@@ -369,10 +372,6 @@ export default function LiveOps() {
           ) : null}
         </div>
         <div className="page-header-actions">
-          <button className="btn btn-secondary">
-            <Activity size={16} />
-            System Health
-          </button>
           <button className="btn btn-primary" onClick={handleReroute} disabled={isRerouting}>
             <AlertCircle size={16} />
             {isRerouting ? 'Rerouting...' : 'Raise Ticket'}

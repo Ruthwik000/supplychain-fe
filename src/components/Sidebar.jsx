@@ -1,27 +1,28 @@
+import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Package, Radio, FileText, Shield, Activity } from 'lucide-react'
+import { LayoutDashboard, Package, Radio, Shield, ChevronLeft, ChevronRight } from 'lucide-react'
 
 const navItems = [
   { path: '/dashboard', label: 'Overview', icon: LayoutDashboard },
   { path: '/shipments', label: 'Shipments', icon: Package },
   { path: '/live-ops', label: 'Live Ops', icon: Radio },
-  { path: '/audit', label: 'Audit Logs', icon: FileText },
 ]
 
 export default function Sidebar() {
   const location = useLocation()
+  const [isCollapsed, setIsCollapsed] = useState(false)
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-logo">
         <div className="sidebar-logo-icon">
           <Shield size={18} color="white" />
         </div>
-        <h1>AegisChain</h1>
+        {!isCollapsed && <h1>AegisChain</h1>}
       </div>
 
       <nav className="sidebar-nav">
-        <div className="sidebar-section-label">Navigation</div>
+        {!isCollapsed && <div className="sidebar-section-label">Navigation</div>}
         {navItems.map(item => {
           const Icon = item.icon
           const isActive = location.pathname === item.path ||
@@ -31,9 +32,10 @@ export default function Sidebar() {
               key={item.path}
               to={item.path}
               className={`sidebar-link ${isActive ? 'active' : ''}`}
+              title={isCollapsed ? item.label : ''}
             >
               <Icon size={18} />
-              {item.label}
+              {!isCollapsed && item.label}
             </NavLink>
           )
         })}
@@ -42,18 +44,15 @@ export default function Sidebar() {
       <div className="sidebar-footer">
         <div className="sidebar-status">
           <span className="sidebar-status-dot" />
-          All Systems Operational
+          {!isCollapsed && 'All Systems Operational'}
         </div>
-        <div className="sidebar-system-health">
-          <div className="system-health-item">
-            <Activity size={12} />
-            <span>Uptime: 99.99%</span>
-          </div>
-          <div className="system-health-item">
-            <Activity size={12} />
-            <span>Latency: 24ms</span>
-          </div>
-        </div>
+        <button 
+          className="sidebar-toggle-btn"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+        </button>
       </div>
     </aside>
   )

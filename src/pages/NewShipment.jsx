@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Package, Truck, Route, CheckCircle, AlertTriangle, Shield, MapPin, Clock, DollarSign, Zap, Info } from 'lucide-react'
+import { Package, Truck, Route, CheckCircle, AlertTriangle, Shield, MapPin, Clock, DollarSign, Zap, Info, PanelRightOpen, PanelRightClose } from 'lucide-react'
 import { ApiError, previewLogistics, runPackaging, runPipeline } from '../lib/api'
 import Packing3DView from '../components/Packing3DView'
+import WorkflowFlowchart from '../components/WorkflowFlowchart'
 import { upsertShipmentRun } from '../lib/shipmentStore'
 import '../styles/NewShipment.css'
 
@@ -438,29 +439,40 @@ export default function NewShipment() {
 
   return (
     <div className="new-shipment-page">
-      <div className="page-header">
-        <div className="page-header-left">
-          <h1>Create New Shipment</h1>
-          <p>Configure and dispatch intelligent logistics operations</p>
-        </div>
-      </div>
-
-      <div className="stepper">
-        {STEPS.map((step) => (
-          <div 
-            key={step.id} 
-            className={`stepper-item ${currentStep === step.id ? 'active' : ''} ${currentStep > step.id ? 'completed' : ''}`}
-          >
-            <div className="stepper-number">
-              {currentStep > step.id ? <CheckCircle size={16} /> : step.id}
+      <WorkflowFlowchart 
+        currentStep={currentStep === 2 ? '3d-fitting' : 'packaging'} 
+        runId={null}
+        onStepChange={setCurrentStep}
+        currentStepNumber={currentStep}
+      />
+      
+      {currentStep !== 2 && (
+        <>
+          <div className="page-header">
+            <div className="page-header-left">
+              <h1>Create New Shipment</h1>
+              <p>Configure and dispatch intelligent logistics operations</p>
             </div>
-            <span className="stepper-label">{step.label}</span>
           </div>
-        ))}
-      </div>
+
+          <div className="stepper">
+            {STEPS.map((step) => (
+              <div 
+                key={step.id} 
+                className={`stepper-item ${currentStep === step.id ? 'active' : ''} ${currentStep > step.id ? 'completed' : ''}`}
+              >
+                <div className="stepper-number">
+                  {currentStep > step.id ? <CheckCircle size={16} /> : step.id}
+                </div>
+                <span className="stepper-label">{step.label}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       {!isProcessing ? (
-        <div className="shipment-form-container">
+        <div className={currentStep === 2 ? '' : 'shipment-form-container'}>
           {currentStep === 1 && (
             <Step1
               formData={formData}
@@ -492,18 +504,15 @@ export default function NewShipment() {
             />
           )}
 
-          <div className="form-actions">
-            {currentStep > 1 && (
-              <button className="btn btn-secondary" onClick={handleBack}>
-                Back
-              </button>
-            )}
-            {currentStep < 4 ? (
-              <button className="btn btn-primary" onClick={handleNext}>
-                Continue
-              </button>
-            ) : null}
-          </div>
+          {currentStep !== 2 && (
+            <div className="form-actions">
+              {currentStep > 1 && (
+                <button className="btn btn-secondary" onClick={handleBack}>
+                  Back
+                </button>
+              )}
+            </div>
+          )}
         </div>
       ) : (
         <ExecutionPipeline runId={dispatchRunId} />
@@ -792,6 +801,7 @@ function Step2({
   previewError,
   onGeneratePreview,
 }) {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const estimated = estimateShipmentMetrics(formData)
   const algorithmResults = packingPreview?.algorithm_results || []
   const selectedResult =
@@ -808,44 +818,32 @@ function Step2({
   const weightUtil = selectedResult?.weight_utilization_pct || 0
 
   return (
-    <div className="step-content">
-      <div className="step-main">
-        <h2>Vehicle Configuration & 3D Engineering View</h2>
-        
-        <div className="vehicle-tabs">
-          {VEHICLE_CATEGORIES.map(category => (
-            <button
-              key={category}
-              className={`vehicle-tab ${formData.vehicleCategory === category ? 'active' : ''}`}
-              onClick={() => onChange('vehicleCategory', category)}
-            >
-              <Truck size={20} />
-              <span>{category}</span>
-            </button>
-          ))}
+    <div className="step-content-fullscreen">
+      <div className={`canvas-main-area ${isSidebarOpen ? 'secondary-open' : ''}`}>
+        <div className="canvas-header">
+          <h2>3D Bin Packing Visualization</h2>
+          <div className="canvas-header-actions">
+            <div className="vehicle-tabs-compact">
+              {VEHICLE_CATEGORIES.map(category => (
+                <button
+                  key={category}
+                  className={`vehicle-tab ${formData.vehicleCategory === category ? 'active' : ''}`}
+                  onClick={() => onChange('vehicleCategory', category)}
+                >
+                  <Truck size={18} />
+                  <span>{category}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {algorithmResults.length ? (
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap' }}>
-            {algorithmResults.map((result) => (
-              <button
-                key={result.strategy}
-                className={`btn ${selectedStrategy === result.strategy ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ fontSize: '0.76rem', padding: '8px 12px' }}
-                onClick={() => onChange('selectedAlgorithm', result.strategy)}
-              >
-                {ALGORITHM_LABELS[result.strategy] || result.strategy}
-              </button>
-            ))}
-          </div>
-        ) : null}
-
-        {/* 3D Viewport */}
-        <div className="viewport-3d" style={{ minHeight: '450px', padding: '12px' }}>
+        {/* Fullscreen 3D Viewport */}
+        <div className="viewport-3d-fullscreen">
           <Packing3DView
             truckDimensions={truckDimensions}
             positions={selectedResult?.positions || []}
-            height={360}
+            height={600}
           />
           {!selectedResult && !isPreviewLoading ? (
             <div
@@ -924,60 +922,66 @@ function Step2({
             </button>
           </div>
         </div>
+      </div>
+
+      <div className={`secondary-sidebar ${isSidebarOpen ? 'open' : ''}`}>
         {previewError ? (
           <div
             style={{
-              marginTop: '12px',
               padding: '10px 12px',
               borderRadius: '8px',
               border: '1px solid rgba(239,68,68,0.35)',
               background: 'rgba(239,68,68,0.1)',
               color: 'var(--error)',
-              fontSize: '0.8rem',
+              fontSize: '0.75rem',
             }}
           >
             {previewError}
           </div>
         ) : null}
-        {!algorithmResults.length && !previewError ? (
-          <p style={{ marginTop: '12px', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
-            Run Analyze to generate real placements from Guillotine, Extreme Point, and DBL algorithms.
-          </p>
-        ) : null}
 
-        <div className="vehicle-info-grid">
-          <div className="vehicle-info-card">
-            <div className="label">Efficiency Score</div>
-            <div className="vehicle-score">{spaceUtil.toFixed(1)}%</div>
-            <div className="progress-bar-wrapper">
-              <div className="progress-bar-fill" style={{ width: `${Math.min(spaceUtil, 100)}%`, background: 'var(--success)' }}></div>
+        <div className="card">
+          <h3 style={{ fontSize: '0.9rem', marginBottom: 'var(--space-3)' }}>Algorithm Selection</h3>
+          {algorithmResults.length ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {algorithmResults.map((result) => (
+                <button
+                  key={result.strategy}
+                  className={`btn ${selectedStrategy === result.strategy ? 'btn-primary' : 'btn-secondary'}`}
+                  style={{ fontSize: '0.75rem', padding: '8px 12px', width: '100%' }}
+                  onClick={() => onChange('selectedAlgorithm', result.strategy)}
+                >
+                  {ALGORITHM_LABELS[result.strategy] || result.strategy}
+                </button>
+              ))}
             </div>
-          </div>
+          ) : (
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
+              Run Analyze to see options
+            </p>
+          )}
+        </div>
 
-          <div className="vehicle-info-card">
-            <div className="label">Packed Boxes</div>
-            <div className="vehicle-score">{packedCount}</div>
-          </div>
-
-          <div className="vehicle-info-card">
-            <div className="label">Unpacked Boxes</div>
-            <div className="vehicle-score">{unpackedCount}</div>
-          </div>
-
-          <div className="vehicle-info-card">
-            <div className="label">Selected Algorithm</div>
-            <div className="vehicle-score">
-              <span className="badge badge-info">
-                {selectedStrategy ? ALGORITHM_LABELS[selectedStrategy] : 'Pending'}
-              </span>
+        <div className="card">
+          <h3 style={{ fontSize: '0.9rem', marginBottom: 'var(--space-3)' }}>Performance</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+            <div style={{ padding: 'var(--space-2)', background: 'var(--surface)', borderRadius: 'var(--radius-md)' }}>
+              <div className="label" style={{ fontSize: '0.7rem' }}>Efficiency</div>
+              <div style={{ fontSize: '1.1rem', fontWeight: '700' }}>{spaceUtil.toFixed(1)}%</div>
+            </div>
+            <div style={{ padding: 'var(--space-2)', background: 'var(--surface)', borderRadius: 'var(--radius-md)' }}>
+              <div className="label" style={{ fontSize: '0.7rem' }}>Packed</div>
+              <div style={{ fontSize: '1.1rem', fontWeight: '700' }}>{packedCount}</div>
+            </div>
+            <div style={{ padding: 'var(--space-2)', background: 'var(--surface)', borderRadius: 'var(--radius-md)' }}>
+              <div className="label" style={{ fontSize: '0.7rem' }}>Unpacked</div>
+              <div style={{ fontSize: '1.1rem', fontWeight: '700' }}>{unpackedCount}</div>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="step-sidebar">
         <div className="card">
-          <h3 className="card-title">Manifest Summary</h3>
+          <h3 style={{ fontSize: '0.9rem', marginBottom: 'var(--space-3)' }}>Manifest Summary</h3>
           <div className="manifest-item">
             <span className="label">Cargo</span>
             <span>{formData.cargoType || 'Not specified'}</span>
@@ -1013,7 +1017,7 @@ function Step2({
         </div>
 
         <div className="card">
-          <h3 className="card-title">Technical Telemetry</h3>
+          <h3 style={{ fontSize: '0.9rem', marginBottom: 'var(--space-3)' }}>Technical Telemetry</h3>
           <div className="telemetry-grid">
             <div className="telemetry-item">
               <div className="label">Load Distribution</div>
@@ -1030,6 +1034,14 @@ function Step2({
           </div>
         </div>
       </div>
+
+      <button 
+        className="secondary-sidebar-toggle"
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        aria-label={isSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+      >
+        {isSidebarOpen ? <PanelRightClose size={18} /> : <PanelRightOpen size={18} />}
+      </button>
     </div>
   )
 }

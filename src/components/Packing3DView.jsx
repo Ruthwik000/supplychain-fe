@@ -63,6 +63,13 @@ export default function Packing3DView({ truckDimensions, positions, height = 340
     controls.maxDistance = Math.max(truckLength, truckWidth, truckHeight) * 4
     controls.minDistance = 4
     controls.target.set(truckLength / 2, truckWidth / 2, truckHeight / 2)
+    controls.enablePan = true
+    controls.enableZoom = true
+    controls.enableRotate = true
+    controls.minPolarAngle = 0
+    controls.maxPolarAngle = Math.PI
+    controls.minAzimuthAngle = -Infinity
+    controls.maxAzimuthAngle = Infinity
 
     const ambient = new THREE.AmbientLight(0xffffff, 0.55)
     scene.add(ambient)
