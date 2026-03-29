@@ -84,6 +84,16 @@
   --blur-sm: 8px;
   --blur-md: 16px;
   --blur-lg: 24px;
+
+  /* High-Intensity Glass Cards */
+  --glass-card-bg: rgba(12, 14, 20, 0.5);
+  --glass-card-bg-hover: rgba(20, 24, 34, 0.56);
+  --glass-card-border: rgba(255, 255, 255, 0.22);
+  --glass-card-border-hover: rgba(255, 255, 255, 0.34);
+  --glass-card-blur: 18px;
+  --glass-card-saturation: 165%;
+  --glass-card-saturation-hover: 180%;
+  --glass-card-noise-size: 220px 220px;
 }
 
 /* Light Theme - Monotonic with Pink Accent */
@@ -130,6 +140,11 @@
   --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.1);
   --shadow-glow: 0 0 32px rgba(219, 39, 119, 0.2);
   --shadow-glow-lg: 0 0 48px rgba(219, 39, 119, 0.25);
+
+  --glass-card-bg: rgba(255, 255, 255, 0.52);
+  --glass-card-bg-hover: rgba(255, 255, 255, 0.62);
+  --glass-card-border: rgba(15, 23, 42, 0.18);
+  --glass-card-border-hover: rgba(15, 23, 42, 0.3);
 }
 
 /* Reset */
@@ -243,6 +258,119 @@ input, select, textarea {
   border-color: var(--border-accent);
   box-shadow: var(--shadow-md);
   transform: translateY(-2px);
+}
+
+/* High-intensity glass + noise across card variants */
+:is(
+  .card,
+  .kpi-card,
+  .agent-card,
+  .landing-feature-card,
+  .map-overlay-card,
+  .map-route-item,
+  .agent-status-panel,
+  .agent-status-card,
+  .vehicle-info-card,
+  .route-card,
+  .summary-card,
+  .viewport-overlay-card
+) {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-color: var(--glass-card-bg) !important;
+  background-image: none;
+  border: 1px solid var(--glass-card-border) !important;
+  backdrop-filter: blur(var(--glass-card-blur)) saturate(var(--glass-card-saturation)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-card-blur)) saturate(var(--glass-card-saturation)) !important;
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+:is(
+  .card,
+  .kpi-card,
+  .agent-card,
+  .landing-feature-card,
+  .map-overlay-card,
+  .map-route-item,
+  .agent-status-panel,
+  .agent-status-card,
+  .vehicle-info-card,
+  .route-card,
+  .summary-card,
+  .viewport-overlay-card
+)::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0.09) 44%, rgba(255, 255, 255, 0.01) 100%);
+  opacity: 0.5;
+}
+
+:is(
+  .card,
+  .kpi-card,
+  .agent-card,
+  .landing-feature-card,
+  .map-overlay-card,
+  .map-route-item,
+  .agent-status-panel,
+  .agent-status-card,
+  .vehicle-info-card,
+  .route-card,
+  .summary-card,
+  .viewport-overlay-card
+)::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='2' seed='19'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='0.34'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: var(--glass-card-noise-size);
+  mix-blend-mode: soft-light;
+  opacity: 0.18;
+}
+
+:is(
+  .card,
+  .kpi-card,
+  .agent-card,
+  .landing-feature-card,
+  .map-overlay-card,
+  .map-route-item,
+  .agent-status-panel,
+  .agent-status-card,
+  .vehicle-info-card,
+  .route-card,
+  .summary-card,
+  .viewport-overlay-card
+) > * {
+  position: relative;
+  z-index: 1;
+}
+
+:is(
+  .card,
+  .kpi-card,
+  .agent-card,
+  .landing-feature-card,
+  .map-overlay-card,
+  .map-route-item,
+  .agent-status-panel,
+  .agent-status-card,
+  .vehicle-info-card,
+  .route-card,
+  .summary-card,
+  .viewport-overlay-card
+):hover {
+  background-color: var(--glass-card-bg-hover) !important;
+  border-color: var(--glass-card-border-hover) !important;
+  backdrop-filter: blur(calc(var(--glass-card-blur) + 4px)) saturate(var(--glass-card-saturation-hover)) !important;
+  -webkit-backdrop-filter: blur(calc(var(--glass-card-blur) + 4px)) saturate(var(--glass-card-saturation-hover)) !important;
 }
 
 .btn {
